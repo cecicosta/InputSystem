@@ -53,6 +53,15 @@ public partial class @SimpleControls: IInputActionCollection2, IDisposable
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": true
+                },
+                {
+                    ""name"": ""track"",
+                    ""type"": ""Value"",
+                    ""id"": ""a19525af-2ace-46f1-b9c4-61e550bb0117"",
+                    ""expectedControlType"": ""Vector2"",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": true
                 }
             ],
             ""bindings"": [
@@ -154,6 +163,17 @@ public partial class @SimpleControls: IInputActionCollection2, IDisposable
                     ""action"": ""look"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""79f8f3b1-879d-4a97-952d-4ebfae8684be"",
+                    ""path"": ""<Pointer>/position"",
+                    ""interactions"": ""CircleGesture"",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""track"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
                 }
             ]
         }
@@ -165,6 +185,7 @@ public partial class @SimpleControls: IInputActionCollection2, IDisposable
         m_gameplay_fire = m_gameplay.FindAction("fire", throwIfNotFound: true);
         m_gameplay_move = m_gameplay.FindAction("move", throwIfNotFound: true);
         m_gameplay_look = m_gameplay.FindAction("look", throwIfNotFound: true);
+        m_gameplay_track = m_gameplay.FindAction("track", throwIfNotFound: true);
     }
 
     public void Dispose()
@@ -229,6 +250,7 @@ public partial class @SimpleControls: IInputActionCollection2, IDisposable
     private readonly InputAction m_gameplay_fire;
     private readonly InputAction m_gameplay_move;
     private readonly InputAction m_gameplay_look;
+    private readonly InputAction m_gameplay_track;
     public struct GameplayActions
     {
         private @SimpleControls m_Wrapper;
@@ -236,6 +258,7 @@ public partial class @SimpleControls: IInputActionCollection2, IDisposable
         public InputAction @fire => m_Wrapper.m_gameplay_fire;
         public InputAction @move => m_Wrapper.m_gameplay_move;
         public InputAction @look => m_Wrapper.m_gameplay_look;
+        public InputAction @track => m_Wrapper.m_gameplay_track;
         public InputActionMap Get() { return m_Wrapper.m_gameplay; }
         public void Enable() { Get().Enable(); }
         public void Disable() { Get().Disable(); }
@@ -254,6 +277,9 @@ public partial class @SimpleControls: IInputActionCollection2, IDisposable
             @look.started += instance.OnLook;
             @look.performed += instance.OnLook;
             @look.canceled += instance.OnLook;
+            @track.started += instance.OnTrack;
+            @track.performed += instance.OnTrack;
+            @track.canceled += instance.OnTrack;
         }
 
         private void UnregisterCallbacks(IGameplayActions instance)
@@ -267,6 +293,9 @@ public partial class @SimpleControls: IInputActionCollection2, IDisposable
             @look.started -= instance.OnLook;
             @look.performed -= instance.OnLook;
             @look.canceled -= instance.OnLook;
+            @track.started -= instance.OnTrack;
+            @track.performed -= instance.OnTrack;
+            @track.canceled -= instance.OnTrack;
         }
 
         public void RemoveCallbacks(IGameplayActions instance)
@@ -289,5 +318,6 @@ public partial class @SimpleControls: IInputActionCollection2, IDisposable
         void OnFire(InputAction.CallbackContext context);
         void OnMove(InputAction.CallbackContext context);
         void OnLook(InputAction.CallbackContext context);
+        void OnTrack(InputAction.CallbackContext context);
     }
 }
