@@ -21,8 +21,7 @@ public class DrawGestureDetection : MonoBehaviour
     
     public IEnumerator CircleGestureShowCircle()
     {
-        bool detected = false;
-        m_Cg = new CircleGesture(() => {}, () => { detected = true; }, ()=>{}, ()=>{});
+        m_Cg = new CircleGesture(() => {}, () => { }, ()=>{}, ()=>{});
 
         m_Cg.topLeftSlice.onUpdate = (stack, input) => DrawLine(input[input.Count-1], input[input.Count - 2], Color.red);
         m_Cg.topRightSlice.onUpdate = (stack, input) => DrawLine(input[input.Count-1], input[input.Count - 2], Color.green);
@@ -30,7 +29,7 @@ public class DrawGestureDetection : MonoBehaviour
         m_Cg.bottomLeftSlice.onUpdate = (stack, input) => DrawLine(input[input.Count-1], input[input.Count - 2], Color.yellow);
         
         m_Cg.start.onUpdate = (stack, input) => DrawLine(input[input.Count-1], input[input.Count - 2], Color.black);
-        m_Cg.end.onUpdate = (stack, input) => detected = true;
+        m_Cg.end.onUpdate = (stack, input) => { };
             
             
         foreach (var position in DataSample.dataSample)
