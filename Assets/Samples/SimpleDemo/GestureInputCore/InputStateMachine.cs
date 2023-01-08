@@ -9,12 +9,14 @@ namespace Samples.SimpleDemo.GestureInputCore
         public Action<State> onEnter { get; set; }
 
         public Action<State> onExit { get; set; }
+        public Action<List<State>, List<Vector2>> onUpdate { get; set; }
 
         public State(String name)
         {
             m_Name = name;
             onEnter = (State s) => { };
             onExit = (State s) => { };
+            onUpdate = (List<State> stack, List<Vector2> input) => { };
         }
 
         public State(String name, Action<State> onEnter)
@@ -22,6 +24,7 @@ namespace Samples.SimpleDemo.GestureInputCore
             m_Name = name;
             this.onEnter = onEnter;
             onExit = (State s) => { };
+            onUpdate = (List<State> stack, List<Vector2> input) => { };
         }
 
         public State(String name, Action<State> onEnter, Action<State> onExit)
@@ -29,12 +32,15 @@ namespace Samples.SimpleDemo.GestureInputCore
             m_Name = name;
             this.onEnter = onEnter;
             this.onExit = onExit;
+            onUpdate = (List<State> stack, List<Vector2> input) => { };;
         }
         public void AddTransition(State next, Func<List<State>, List<Vector2>, bool> funcTransition)
         {
             m_Transitions.Add(new Transition(next, funcTransition));
         }
-        public State OnUpdate(List<State> stack, List<Vector2> input) {
+        public State OnUpdate(List<State> stack, List<Vector2> input)
+        {
+            onUpdate(stack, input);
             foreach (var transition in m_Transitions)
             {
                 if (transition.CanTransition(stack, input))
@@ -42,7 +48,7 @@ namespace Samples.SimpleDemo.GestureInputCore
                     return transition.next;
                 }
             }
-
+            
             return this;
         }
         
@@ -82,8 +88,8 @@ namespace Samples.SimpleDemo.GestureInputCore
             {
                 m_Current.onExit(m_Current);
                 m_Stack.Add(m_Current);
+                next.onEnter(m_Current);
                 m_Current = next;
-                m_Current.onEnter(m_Current);
             }
 
             if (m_Stack.Count == m_Stack.Capacity)

@@ -5,6 +5,7 @@ using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.Assertions;
 
+
 namespace Samples.SimpleDemo.GestureInputCore
 {
     public class CircleGesture
@@ -22,36 +23,37 @@ namespace Samples.SimpleDemo.GestureInputCore
             this.onCanceled = onCanceled;
             this.onIdle = onIdle;
 
-            start.AddTransition(topLeftSlice, IsTopLeftSlice);
-            start.AddTransition(topRightSlice, IsTopRightSlice);
-            start.AddTransition(bottomRightSlice, IsBottomRightSlice);
-            start.AddTransition(bottomLeftSlice, IsBottomLeftSlice);
+            start.AddTransition(topLeftSlice, CreateConditionalWithThreshold(IsTopLeftSliceClockwise, 0));
+            start.AddTransition(topRightSlice, CreateConditionalWithThreshold(IsTopRightSliceClockwise, 0));
+            start.AddTransition(bottomRightSlice, CreateConditionalWithThreshold(IsBottomRightSliceClockwise, 0));
+            start.AddTransition(bottomLeftSlice, CreateConditionalWithThreshold(IsBottomLeftSliceClockwise, 0));
 
-            topLeftSlice.AddTransition(topRightSlice, IsTopRightSlice);
             topLeftSlice.AddTransition(end, IsEnd);
+            topLeftSlice.AddTransition(topRightSlice, CreateConditionalWithThreshold(IsTopRightSliceClockwise, 3));
+            topLeftSlice.AddTransition(bottomLeftSlice, CreateConditionalWithThreshold(IsBottomLeftSliceClockwise, 3));
             topLeftSlice.AddTransition(start,
-                new Func<List<State>, List<Vector2>, bool>((List<State> stack, List<Vector2> input) =>
-                    !IsTopLeftSlice(stack, input) && !IsTopRightSlice(stack, input)));
+                CreateConditionalWithThreshold((stack, input) => !IsTopLeftSliceClockwise(stack, input), 5));
 
-            topRightSlice.AddTransition(bottomRightSlice, IsBottomRightSlice);
             topRightSlice.AddTransition(end, IsEnd);
+            topRightSlice.AddTransition(bottomRightSlice, CreateConditionalWithThreshold(IsBottomRightSliceClockwise, 3));
+            topRightSlice.AddTransition(topLeftSlice, CreateConditionalWithThreshold(IsTopLeftSliceClockwise, 3));
             topRightSlice.AddTransition(start,
-                new Func<List<State>, List<Vector2>, bool>((List<State> stack, List<Vector2> input) =>
-                    !IsTopRightSlice(stack, input) && !IsBottomRightSlice(stack, input)));
+                CreateConditionalWithThreshold((stack, input) => !IsTopRightSliceClockwise(stack, input), 5));
 
-            bottomRightSlice.AddTransition(bottomLeftSlice, IsBottomLeftSlice);
             bottomRightSlice.AddTransition(end, IsEnd);
+            bottomRightSlice.AddTransition(bottomLeftSlice, CreateConditionalWithThreshold(IsBottomLeftSliceClockwise, 3));
+            bottomRightSlice.AddTransition(topRightSlice, CreateConditionalWithThreshold(IsTopRightSliceClockwise, 3));
             bottomRightSlice.AddTransition(start,
-                new Func<List<State>, List<Vector2>, bool>((List<State> stack, List<Vector2> input) =>
-                    !IsBottomRightSlice(stack, input) && !IsBottomLeftSlice(stack, input)));
+                CreateConditionalWithThreshold(
+                    (stack, input) => !IsBottomRightSliceClockwise(stack, input), 5));
 
-            bottomLeftSlice.AddTransition(topLeftSlice, IsTopLeftSlice);
             bottomLeftSlice.AddTransition(end, IsEnd);
+            bottomLeftSlice.AddTransition(topLeftSlice, CreateConditionalWithThreshold(IsTopLeftSliceClockwise, 3));
+            bottomLeftSlice.AddTransition(bottomRightSlice, CreateConditionalWithThreshold(IsBottomRightSliceClockwise, 3));
             bottomLeftSlice.AddTransition(start,
-                new Func<List<State>, List<Vector2>, bool>((List<State> stack, List<Vector2> input) =>
-                    !IsBottomLeftSlice(stack, input) && !IsTopLeftSlice(stack, input)));
+                CreateConditionalWithThreshold((stack, input) => !IsBottomLeftSliceClockwise(stack, input), 5));
 
-            stateMachine = new StateMachine(start, end, 4);
+            stateMachine = new StateMachine(start, end, 7);
         }
 
         public void Process(Vector2 position)
@@ -81,6 +83,7 @@ namespace Samples.SimpleDemo.GestureInputCore
             {
                 return;
             }
+
             onCanceled();
         }
 
@@ -97,20 +100,20 @@ namespace Samples.SimpleDemo.GestureInputCore
             {
                 m_Inputs.Add(position);
             }
-            else if (position.x - m_Inputs.Last().x > 3.0f)
+            else if (Mathf.Abs(position.x - m_Inputs.Last().x) > Epsilon)
             {
                 m_Inputs.Add(position);
             }
 
-            if (m_Inputs.Count > 5)
+            if (m_Inputs.Count > sampleSize)
             {
                 m_Inputs.RemoveAt(0);
             }
 
-            return m_Inputs.Count == 5;
+            return m_Inputs.Count == sampleSize;
         }
 
-        private static bool GetDerivativesIfDefined(List<Vector2> input, int i, out float dPiResult,
+        private bool GetDerivativesIfDefined(List<Vector2> input, int i, out float dPiResult,
             out float ddPiResult)
         {
             dPiResult = dPi(input, i);
@@ -118,44 +121,104 @@ namespace Samples.SimpleDemo.GestureInputCore
             return !float.IsNaN(dPiResult) && !float.IsNaN(ddPiResult);
         }
 
-        private static bool IsTopLeftSlice(List<State> stack, List<Vector2> input)
+        private bool DerivativeAverageIfDefined(List<Vector2> input, out float dPiAverage, out float ddPiAverage)
         {
-            if (GetDerivativesIfDefined(input, 2, out var dPiResult, out var ddPiResult))
+            dPiAverage = 0;
+            ddPiAverage = 0;
+            int count = 0;
+            //TODO: Cache the results so we can avoid recalculating the derivative at a given point
+            for (int i = 1; i < sampleSize - 2; i++)
             {
-                return dPiResult > 0 && ddPiResult <= 0;
+                if (GetDerivativesIfDefined(input, i, out var dPiResult, out var ddPiResult))
+                {
+                    dPiAverage += dPiResult;
+                    ddPiAverage += ddPiResult;
+                    count++;
+                }
             }
 
-            return false; 
+            dPiAverage = count > 0 ? dPiAverage / count : 0;
+            ddPiAverage = count > 0 ? ddPiAverage / count : 0;
+            return count > 0;
         }
 
-        private static bool IsTopRightSlice(List<State> stack, List<Vector2> input)
+        /// <summary>
+        /// This method is used to detect if the current coordinates on input list correspond to the TopLeft slice of a circle, allowing a transition of state.
+        /// It bases the decision on the average value of the points derivative first and second to analise the curve behavior.
+        /// </summary>
+        /// <param name="stack"></param>
+        /// Last states added to the stack. Can be used to implement transitions sensitive to context.
+        /// <param name="input"></param>
+        /// List of points read from the input device as Vector2 coordinates.
+        /// <returns></returns>
+        private bool IsTopLeftSliceClockwise(List<State> stack, List<Vector2> input)
         {
-            if (GetDerivativesIfDefined(input, 2, out var dPiResult, out var ddPiResult))
-            {
-                return dPiResult <= 0 && ddPiResult < 0;
-            }
-
-            return false; 
+            return DerivativeAverageIfDefined(input, out var dPiAverage, out var ddPiAverage) && dPiAverage > 0 &&
+                   ddPiAverage <= 0;
+        }
+        private bool IsTopLeftSliceCounterClockwise(List<State> stack, List<Vector2> input)
+        {
+            return DerivativeAverageIfDefined(input, out var dPiAverage, out var ddPiAverage) && dPiAverage <= 0 &&
+                   ddPiAverage <= 0;
+        }
+        private bool IsTopRightSliceClockwise(List<State> stack, List<Vector2> input)
+        {
+            return DerivativeAverageIfDefined(input, out var dPiAverage, out var ddPiAverage) && dPiAverage <= 0 &&
+                   ddPiAverage < 0;
+        }
+        
+        private bool IsTopRightSliceCounterClockwise(List<State> stack, List<Vector2> input)
+        {
+            return DerivativeAverageIfDefined(input, out var dPiAverage, out var ddPiAverage) && dPiAverage > 0 &&
+                   ddPiAverage < 0;
         }
 
-        private static bool IsBottomRightSlice(List<State> stack, List<Vector2> input)
+        private bool IsBottomRightSliceClockwise(List<State> stack, List<Vector2> input)
         {
-            if (GetDerivativesIfDefined(input, 2, out var dPiResult, out var ddPiResult))
-            {
-                return dPiResult > 0 && ddPiResult >= 0; //We are treating the circle as a tangent function, so it will have a point of turn
-            }
-
-            return false;
+            return DerivativeAverageIfDefined(input, out var dPiAverage, out var ddPiAverage) && dPiAverage < 0 &&
+                   ddPiAverage >= 0;
+        }
+        private bool IsBottomRightSliceCounterClockwise(List<State> stack, List<Vector2> input)
+        {
+            return DerivativeAverageIfDefined(input, out var dPiAverage, out var ddPiAverage) && dPiAverage >= 0 &&
+                   ddPiAverage >= 0;
         }
 
-        private static bool IsBottomLeftSlice(List<State> stack, List<Vector2> input)
+        private bool IsBottomLeftSliceClockwise(List<State> stack, List<Vector2> input)
         {
-            if (GetDerivativesIfDefined(input, 2, out var dPiResult, out var ddPiResult))
-            {
-                return dPiResult <= 0 && ddPiResult > 0;
-            }
+            return DerivativeAverageIfDefined(input, out var dPiAverage, out var ddPiAverage) && dPiAverage >= 0 &&
+                   ddPiAverage > 0;
+        }
+        
+        private bool IsBottomLeftSliceCounterClockwise(List<State> stack, List<Vector2> input)
+        {
+            return DerivativeAverageIfDefined(input, out var dPiAverage, out var ddPiAverage) && dPiAverage < 0 &&
+                   ddPiAverage > 0;
+        }
 
-            return false; //Derivative is not defined so we allow the verification to continue
+        private Func<List<State>, List<Vector2>, bool> CreateConditionalWithThreshold(
+            Func<List<State>, List<Vector2>, bool> condition,
+            int threshold)
+        {
+            var detectionThresholdCount = 0;
+            return (List<State> stack, List<Vector2> input) =>
+            {
+                if (condition(stack, input))
+                {
+                    detectionThresholdCount++;
+                    if (detectionThresholdCount > threshold)
+                    {
+                        detectionThresholdCount = 0;
+                        return true;
+                    }
+                }
+                else
+                {
+                    detectionThresholdCount = 0;
+                }
+
+                return false;
+            };
         }
 
         private bool IsEnd(List<State> stack, List<Vector2> input)
@@ -168,28 +231,29 @@ namespace Samples.SimpleDemo.GestureInputCore
         // First derivative on the point of index i
         private static readonly Func<List<Vector2>, int, float> dPi = (List<Vector2> input, int i) =>
         {
-            if (input[i + 1].x - input[i - 1].x == 0)
+            if (input[i + 1].x - input[i].x == 0)
             {
                 throw new Exception("Derivative not defined for dxi = (f(x+i) - f(xi-1)) / (xi+1 - xi-1), with " +
-                                             "f(xi-1) = " + input[i-1].y + ", " +
-                                             "f(xi+1) = " + input[i+1].y + " and " +
-                                             "xi-1 = " + input[i-1].x + ", " +
-                                             "xi+1 = " + input[i+1].x + ". Result is unexpected.");
+                                    "f(xi-1) = " + input[i].y + ", " +
+                                    "f(xi+1) = " + input[i + 1].y + " and " +
+                                    "xi-1 = " + input[i].x + ", " +
+                                    "xi+1 = " + input[i + 1].x + ". Result is unexpected.");
             }
 
-            return (input[i + 1].y - input[i - 1].y) / Mathf.Abs(input[i + 1].x - input[i - 1].x); //A circle do not behave as a function, but we can as if x intervals were always increasing
+            //A circle do not behave as a function, but we can as if x intervals were always increasing
+            return (input[i + 1].y - input[i].y) / Mathf.Abs(input[i + 1].x - input[i].x);
         };
 
         // Second derivative on the point of index i
         private static readonly Func<List<Vector2>, int, float> ddPi = (List<Vector2> input, int i) =>
         {
-            if (input[i + 1].x - input[i - 1].x == 0)
+            if (input[i + 1].x - input[i].x == 0)
             {
-                throw new Exception("Derivative not defined for dxi = (f(x+i) - f(xi-1)) / (xi+1 - xi-1), with " +
-                                             "f(xi-1) = " + input[i-1].y + ", " +
-                                             "f(xi+1) = " + input[i+1].y + " and " +
-                                             "xi-1 = " + input[i-1].x + ", " +
-                                             "xi+1 = " + input[i+1].x + ". Result is unexpected.");
+                throw new Exception("Derivative not defined for dxi = (f(x+i) - f(xi)) / (xi+1 - xi), with " +
+                                    "f(xi-1) = " + input[i].y + ", " +
+                                    "f(xi+1) = " + input[i + 1].y + " and " +
+                                    "xi-1 = " + input[i].x + ", " +
+                                    "xi+1 = " + input[i + 1].x + ". Result is unexpected.");
             }
 
             var dPiRight = dPi(input, i + 1);
@@ -204,10 +268,20 @@ namespace Samples.SimpleDemo.GestureInputCore
                 return float.NaN;
             }
 
-            return (dPiRight - dPiLeft) / Mathf.Abs(input[i + 1].x - input[i - 1].x); //A circle do not behave as a function, but we can as if x intervals were always increasing
+            //A circle do not behave as a function, but we can as if x intervals were always increasing
+            return (dPiRight - dPiLeft) / (Mathf.Abs(input[i + 1].x - input[i - 1].x));
         };
 
         private bool m_IsStarted = false;
+
+        public int sampleSize
+        {
+            get => m_SampleSize;
+            set => m_SampleSize = value < 5 ? m_SampleSize : value;
+        }
+
+        private int m_SampleSize = 8;
+        private const float Epsilon = 0.01f;
 
         public State start { get; } = new State("Start");
         public State end { get; } = new State("End");

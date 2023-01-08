@@ -1,9 +1,10 @@
-{
+﻿{
     "name": "Gesture",
     "references": [
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner",
-        "GestureInputCore"
+        "GestureInputCore",
+        "Unity.InputSystem.Samples.Tests"
     ],
     "includePlatforms": [
         "Editor"
