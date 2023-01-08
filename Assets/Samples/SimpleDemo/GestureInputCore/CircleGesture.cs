@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.Assertions;
 
 namespace Samples.SimpleDemo.GestureInputCore
 {
@@ -80,7 +81,6 @@ namespace Samples.SimpleDemo.GestureInputCore
             {
                 return;
             }
-            Reset();
             onCanceled();
         }
 
@@ -97,7 +97,7 @@ namespace Samples.SimpleDemo.GestureInputCore
             {
                 m_Inputs.Add(position);
             }
-            else if (position.x - m_Inputs.Last().x > float.Epsilon)
+            else if (position.x - m_Inputs.Last().x > 3.0f)
             {
                 m_Inputs.Add(position);
             }
@@ -120,9 +120,9 @@ namespace Samples.SimpleDemo.GestureInputCore
 
         private static bool IsTopLeftSlice(List<State> stack, List<Vector2> input)
         {
-            if (GetDerivativesIfDefined(input, 4, out var dPiResult, out var ddPiResult))
+            if (GetDerivativesIfDefined(input, 2, out var dPiResult, out var ddPiResult))
             {
-                return dPiResult > 0 && ddPiResult < 0;
+                return dPiResult > 0 && ddPiResult <= 0;
             }
 
             return false; 
@@ -130,7 +130,7 @@ namespace Samples.SimpleDemo.GestureInputCore
 
         private static bool IsTopRightSlice(List<State> stack, List<Vector2> input)
         {
-            if (GetDerivativesIfDefined(input, 3, out var dPiResult, out var ddPiResult))
+            if (GetDerivativesIfDefined(input, 2, out var dPiResult, out var ddPiResult))
             {
                 return dPiResult <= 0 && ddPiResult < 0;
             }
@@ -140,17 +140,17 @@ namespace Samples.SimpleDemo.GestureInputCore
 
         private static bool IsBottomRightSlice(List<State> stack, List<Vector2> input)
         {
-            if (GetDerivativesIfDefined(input, 3, out var dPiResult, out var ddPiResult))
+            if (GetDerivativesIfDefined(input, 2, out var dPiResult, out var ddPiResult))
             {
-                return dPiResult > 0 && ddPiResult > 0;
+                return dPiResult > 0 && ddPiResult >= 0; //We are treating the circle as a tangent function, so it will have a point of turn
             }
 
-            return false; //Derivative is not defined so we allow the verification to continue
+            return false;
         }
 
         private static bool IsBottomLeftSlice(List<State> stack, List<Vector2> input)
         {
-            if (GetDerivativesIfDefined(input, 3, out var dPiResult, out var ddPiResult))
+            if (GetDerivativesIfDefined(input, 2, out var dPiResult, out var ddPiResult))
             {
                 return dPiResult <= 0 && ddPiResult > 0;
             }
@@ -170,15 +170,14 @@ namespace Samples.SimpleDemo.GestureInputCore
         {
             if (input[i + 1].x - input[i - 1].x == 0)
             {
-                throw new AssertionException("Derivative not defined for dxi = (f(x+i) - f(xi-1)) / (xi+1 - xi-1), with " +
+                throw new Exception("Derivative not defined for dxi = (f(x+i) - f(xi-1)) / (xi+1 - xi-1), with " +
                                              "f(xi-1) = " + input[i-1].y + ", " +
                                              "f(xi+1) = " + input[i+1].y + " and " +
                                              "xi-1 = " + input[i-1].x + ", " +
                                              "xi+1 = " + input[i+1].x + ". Result is unexpected.");
-                return float.NaN;
             }
 
-            return (input[i + 1].y - input[i - 1].y) / (input[i + 1].x - input[i - 1].x);
+            return (input[i + 1].y - input[i - 1].y) / Mathf.Abs(input[i + 1].x - input[i - 1].x); //A circle do not behave as a function, but we can as if x intervals were always increasing
         };
 
         // Second derivative on the point of index i
@@ -186,12 +185,11 @@ namespace Samples.SimpleDemo.GestureInputCore
         {
             if (input[i + 1].x - input[i - 1].x == 0)
             {
-                throw new AssertionException("Derivative not defined for dxi = (f(x+i) - f(xi-1)) / (xi+1 - xi-1), with " +
+                throw new Exception("Derivative not defined for dxi = (f(x+i) - f(xi-1)) / (xi+1 - xi-1), with " +
                                              "f(xi-1) = " + input[i-1].y + ", " +
                                              "f(xi+1) = " + input[i+1].y + " and " +
                                              "xi-1 = " + input[i-1].x + ", " +
                                              "xi+1 = " + input[i+1].x + ". Result is unexpected.");
-                return float.NaN;
             }
 
             var dPiRight = dPi(input, i + 1);
@@ -206,7 +204,7 @@ namespace Samples.SimpleDemo.GestureInputCore
                 return float.NaN;
             }
 
-            return (dPiRight - dPiLeft) / (input[i + 1].x - input[i - 1].x);
+            return (dPiRight - dPiLeft) / Mathf.Abs(input[i + 1].x - input[i - 1].x); //A circle do not behave as a function, but we can as if x intervals were always increasing
         };
 
         private bool m_IsStarted = false;

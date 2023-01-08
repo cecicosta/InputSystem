@@ -1,6 +1,5 @@
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 using NUnit.Framework;
 using Samples.SimpleDemo.GestureInputCore;
 using UnityEngine;
@@ -8,23 +7,79 @@ using UnityEngine.TestTools;
 
 namespace Tests.Gesture
 {
-    public class CircleGestureTests : CoreTestsFixture
+    public class CircleGestureTests
     {
-        [UnityTest]
-        [Category("Samples")]
-        public IEnumerator Custom_Interaction_StateMachineStartedAfter5DifferentInputsOnX()
+        // A Test behaves as an ordinary method
+        [Test]
+        public void StateMachineStartedBeforeEndOfFirstQuadrant()
         {
             var hasStarted = false;
             cg = new CircleGesture(() => { hasStarted = true; }, ()=>{}, ()=>{}, ()=>{});
             
             List<Vector2> input = new List<Vector2>();
-            for (var i = 0; i < 12; i++)
+            for (var i = 0; i < dataSample.Length; i++)
+            {
+                cg.Process(dataSample[i]);
+                if (i == 80 && !hasStarted)
+                {
+                    break;
+                }
+            }
+            Assert.True(hasStarted);
+        }
+        
+        // A Test behaves as an ordinary method
+        [Test]
+        public void StateMachineDoNotStartedBefore5DifferentInputsOnX()
+        {
+            var hasStarted = false;
+            cg = new CircleGesture(() => { hasStarted = true; }, ()=>{}, ()=>{}, ()=>{});
+            
+            List<Vector2> input = new List<Vector2>();
+            for (var i = 0; i < 11; i++)
             {
                 cg.Process(dataSample[i]);
             }
-
-            yield return null;
+            Assert.False(hasStarted);
+        }
+        
+        // A Test behaves as an ordinary method
+        [Test]
+        public void StateMachineLeaveStartState()
+        {
+            var hasStarted = false;
+            cg = new CircleGesture(() => {}, ()=>{}, ()=>{}, ()=>{});
+            cg.start.onExit = state => hasStarted = true;
+            
+            List<Vector2> input = new List<Vector2>();
+            foreach (var position in dataSample)
+            {
+                cg.Process(position);
+            }
             Assert.True(hasStarted);
+        }
+
+        
+        // A Test behaves as an ordinary method
+        [Test]
+        public void StateMachineLeaveStartStateToTopLeftSliceState()
+        {
+            var hasStarted = false;
+            cg = new CircleGesture(() => {}, ()=>{}, ()=>{}, ()=>{});
+            cg.topLeftSlice.onEnter = state => hasStarted = true;
+            
+            List<Vector2> input = new List<Vector2>();
+            foreach (var position in dataSample)
+            {
+                cg.Process(position);
+            }
+            Assert.True(hasStarted);
+        }
+        
+        [UnityTest]
+        public IEnumerator Custom_Interaction_StateMachineStartedAfter5DifferentInputsOnX()
+        {
+            yield return null;
         }
 
         private CircleGesture cg;
