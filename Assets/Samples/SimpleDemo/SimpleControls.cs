@@ -168,7 +168,7 @@ public partial class @SimpleControls: IInputActionCollection2, IDisposable
                     ""name"": """",
                     ""id"": ""79f8f3b1-879d-4a97-952d-4ebfae8684be"",
                     ""path"": ""<Pointer>/position"",
-                    ""interactions"": """",
+                    ""interactions"": ""CircleGesture"",
                     ""processors"": """",
                     ""groups"": """",
                     ""action"": ""track"",

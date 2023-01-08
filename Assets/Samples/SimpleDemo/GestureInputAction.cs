@@ -42,7 +42,7 @@ public partial class @GestureInputAction: IInputActionCollection2, IDisposable
                     ""name"": """",
                     ""id"": ""2e7a30ad-dad8-42db-9e7f-13e6c59b4b5e"",
                     ""path"": ""<Pointer>/position"",
-                    ""interactions"": """",
+                    ""interactions"": ""CircleGesture"",
                     ""processors"": """",
                     ""groups"": """",
                     ""action"": ""Trigger"",

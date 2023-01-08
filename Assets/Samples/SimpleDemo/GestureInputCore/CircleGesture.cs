@@ -87,7 +87,7 @@ namespace Samples.SimpleDemo.GestureInputCore
             onCanceled();
         }
 
-        private void Reset()
+        public void Reset()
         {
             m_IsStarted = false;
             m_Inputs.Clear();
