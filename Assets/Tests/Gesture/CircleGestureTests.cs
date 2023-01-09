@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using NUnit.Framework;
+using Samples.CircleGestureCustomInteraction.GestureInputCore;
 using Samples.SimpleDemo.GestureInputCore;
 using UnityEngine;
 using UnityEngine.TestTools;

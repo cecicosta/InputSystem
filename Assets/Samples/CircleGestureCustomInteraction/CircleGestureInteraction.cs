@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel;
+using Samples.CircleGestureCustomInteraction.GestureInputCore;
 using Samples.SimpleDemo.GestureInputCore;
 using UnityEditor;
 using UnityEngine;
@@ -36,26 +37,40 @@ namespace Samples.SimpleDemo
             switch (context.phase)
             {
                 case InputActionPhase.Waiting:
+                    if (context.timerHasExpired)
+                    {
+                        Reset();
+                        context.SetTimeout(1);                        
+                    }
                     if (m_IsStarted)
                     {
-                        context.SetTimeout(1);
                         context.Started();
+                        context.SetTimeout(1);     
                     }
                     break;
                 case InputActionPhase.Started:
-                    if (m_IsPerformed)
+                    if (context.timerHasExpired)
                     {
-                        context.Performed();
-                        Debug.Log("Performed Circle Detection!");
+                        context.Canceled();                     
                     }
-                    if (m_IsCanceled || context.timerHasExpired)
+                    if (m_IsCanceled)
                     {
                         context.Canceled();
                     }
+                    if (m_IsPerformed)
+                    {
+                        context.SetTimeout(1);  
+                        context.PerformedAndStayPerformed();
+                    }
                     break;
                 case InputActionPhase.Performed:
+                    if (context.timerHasExpired)
+                    {
+                        context.Waiting();                     
+                    }
+                    Reset();
+                    break;
                 case InputActionPhase.Canceled:
-                    context.Waiting();
                     Reset();
                     break;
                 default:
@@ -65,7 +80,7 @@ namespace Samples.SimpleDemo
         }
 
         public void Reset()
-        {
+        {   
             circleGesture.Reset();
             m_IsStarted = false;
             m_IsPerformed = false;
@@ -89,6 +104,7 @@ namespace Samples.SimpleDemo
             target.circleGesture.sampleSize = EditorGUILayout.IntField("Sample Size",  target.circleGesture.sampleSize, GUILayout.ExpandWidth(false));
             target.circleGesture.cancelThreshold = EditorGUILayout.IntField("Cancel Input Threshold",  target.circleGesture.cancelThreshold, GUILayout.ExpandWidth(false));
             target.circleGesture.transitionThreshold = EditorGUILayout.IntField("Detection Input Threshold",  target.circleGesture.transitionThreshold, GUILayout.ExpandWidth(false));
+            target.circleGesture.closingTolerance = EditorGUILayout.FloatField("Completed Tolerance",  target.circleGesture.closingTolerance, GUILayout.ExpandWidth(false));
         }
     }
 #endif

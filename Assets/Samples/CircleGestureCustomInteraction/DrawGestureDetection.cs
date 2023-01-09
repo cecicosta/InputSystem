@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using Samples.CircleGestureCustomInteraction.GestureInputCore;
 using Samples.SimpleDemo.GestureInputCore;
 using UnityEditor;
 using UnityEngine;

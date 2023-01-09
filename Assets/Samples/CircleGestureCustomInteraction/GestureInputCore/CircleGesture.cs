@@ -1,36 +1,44 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using NUnit.Framework;
+using Samples.SimpleDemo.GestureInputCore;
 using UnityEngine;
-using UnityEngine.Assertions;
 
-
-namespace Samples.SimpleDemo.GestureInputCore
+namespace Samples.CircleGestureCustomInteraction.GestureInputCore
 {
+
     public class CircleGesture
     {
-
         public int sampleSize
         {
             get => m_SampleSize;
             set => m_SampleSize = value < 5 ? m_SampleSize : value;
         }
+
         public float epsilon
         {
             get => m_Epsilon;
             set => m_Epsilon = value;
         }
+
         public int cancelThreshold
         {
             get => m_CancelThreshold;
             set => m_CancelThreshold = value;
         }
+
         public int transitionThreshold
         {
             get => m_TransitionThreshold;
             set => m_TransitionThreshold = value;
         }
+        
+        public float closingTolerance
+        {
+            get => m_ClosingTolerance;
+            set => m_ClosingTolerance = value;
+        }
+
         public CircleGesture(Action onStarted, Action onFinished, Action onCanceled, Action onIdle)
         {
             this.onStarted = onStarted;
@@ -38,33 +46,47 @@ namespace Samples.SimpleDemo.GestureInputCore
             this.onCanceled = onCanceled;
             this.onIdle = onIdle;
 
+            this.onStarted += () =>
+            {
+                m_StartLine =
+                    new Tuple<Vector2, Vector2>(m_Inputs.First(), m_Inputs.Last());
+            };
+
             start.AddTransition(topLeftSlice, CreateConditionalWithThreshold(IsTopLeftSlice, 0));
             start.AddTransition(topRightSlice, CreateConditionalWithThreshold(IsTopRightSlice, 0));
             start.AddTransition(bottomRightSlice, CreateConditionalWithThreshold(IsBottomRightSlice, 0));
             start.AddTransition(bottomLeftSlice, CreateConditionalWithThreshold(IsBottomLeftSlice, 0));
 
             topLeftSlice.AddTransition(end, IsEnd);
-            topLeftSlice.AddTransition(topRightSlice, CreateConditionalWithThreshold(IsTopRightSlice, transitionThreshold));
-            topLeftSlice.AddTransition(bottomLeftSlice, CreateConditionalWithThreshold(IsBottomLeftSlice, transitionThreshold));
+            topLeftSlice.AddTransition(topRightSlice,
+                CreateConditionalWithThreshold(IsTopRightSlice, transitionThreshold));
+            topLeftSlice.AddTransition(bottomLeftSlice,
+                CreateConditionalWithThreshold(IsBottomLeftSlice, transitionThreshold));
             topLeftSlice.AddTransition(start,
                 CreateConditionalWithThreshold((stack, input) => !IsTopLeftSlice(stack, input), cancelThreshold));
 
             topRightSlice.AddTransition(end, IsEnd);
-            topRightSlice.AddTransition(bottomRightSlice, CreateConditionalWithThreshold(IsBottomRightSlice, transitionThreshold));
-            topRightSlice.AddTransition(topLeftSlice, CreateConditionalWithThreshold(IsTopLeftSlice, transitionThreshold));
+            topRightSlice.AddTransition(bottomRightSlice,
+                CreateConditionalWithThreshold(IsBottomRightSlice, transitionThreshold));
+            topRightSlice.AddTransition(topLeftSlice,
+                CreateConditionalWithThreshold(IsTopLeftSlice, transitionThreshold));
             topRightSlice.AddTransition(start,
                 CreateConditionalWithThreshold((stack, input) => !IsTopRightSlice(stack, input), cancelThreshold));
 
             bottomRightSlice.AddTransition(end, IsEnd);
-            bottomRightSlice.AddTransition(bottomLeftSlice, CreateConditionalWithThreshold(IsBottomLeftSlice, transitionThreshold));
-            bottomRightSlice.AddTransition(topRightSlice, CreateConditionalWithThreshold(IsTopRightSlice, transitionThreshold));
+            bottomRightSlice.AddTransition(bottomLeftSlice,
+                CreateConditionalWithThreshold(IsBottomLeftSlice, transitionThreshold));
+            bottomRightSlice.AddTransition(topRightSlice,
+                CreateConditionalWithThreshold(IsTopRightSlice, transitionThreshold));
             bottomRightSlice.AddTransition(start,
                 CreateConditionalWithThreshold(
                     (stack, input) => !IsBottomRightSlice(stack, input), cancelThreshold));
 
             bottomLeftSlice.AddTransition(end, IsEnd);
-            bottomLeftSlice.AddTransition(topLeftSlice, CreateConditionalWithThreshold(IsTopLeftSlice, transitionThreshold));
-            bottomLeftSlice.AddTransition(bottomRightSlice, CreateConditionalWithThreshold(IsBottomRightSlice, transitionThreshold));
+            bottomLeftSlice.AddTransition(topLeftSlice,
+                CreateConditionalWithThreshold(IsTopLeftSlice, transitionThreshold));
+            bottomLeftSlice.AddTransition(bottomRightSlice,
+                CreateConditionalWithThreshold(IsBottomRightSlice, transitionThreshold));
             bottomLeftSlice.AddTransition(start,
                 CreateConditionalWithThreshold((stack, input) => !IsBottomLeftSlice(stack, input), cancelThreshold));
 
@@ -93,13 +115,10 @@ namespace Samples.SimpleDemo.GestureInputCore
                     onFinished();
                 }
             }
-
-            if (!m_IsStarted || stateMachine.IsStarted())
+            else
             {
-                return;
+                onCanceled();
             }
-
-            onCanceled();
         }
 
         public void Reset()
@@ -109,6 +128,11 @@ namespace Samples.SimpleDemo.GestureInputCore
             stateMachine.Reset();
         }
 
+        /// <summary>
+        /// Verify if there is enough/new data to process.
+        /// </summary>
+        /// <param name="position">New point to be processed</param>
+        /// <returns> Returns true if the data collection reach the configured sample size and the new point is on a different coordinate on x axis. False otherwise.</returns>
         private bool CanUpdate(Vector2 position)
         {
             if (m_Inputs.Count == 0)
@@ -171,11 +195,13 @@ namespace Samples.SimpleDemo.GestureInputCore
             return DerivativeAverageIfDefined(input, out var dPiAverage, out var ddPiAverage) && dPiAverage > 0 &&
                    ddPiAverage <= 0;
         }
+
         private bool IsTopRightSlice(List<State> stack, List<Vector2> input)
         {
             return DerivativeAverageIfDefined(input, out var dPiAverage, out var ddPiAverage) && dPiAverage <= 0 &&
                    ddPiAverage < 0;
         }
+
         private bool IsBottomRightSlice(List<State> stack, List<Vector2> input)
         {
             return DerivativeAverageIfDefined(input, out var dPiAverage, out var ddPiAverage) && dPiAverage < 0 &&
@@ -187,7 +213,7 @@ namespace Samples.SimpleDemo.GestureInputCore
             return DerivativeAverageIfDefined(input, out var dPiAverage, out var ddPiAverage) && dPiAverage >= 0 &&
                    ddPiAverage > 0;
         }
-        
+
         private Func<List<State>, List<Vector2>, bool> CreateConditionalWithThreshold(
             Func<List<State>, List<Vector2>, bool> condition,
             int threshold)
@@ -215,8 +241,37 @@ namespace Samples.SimpleDemo.GestureInputCore
 
         private bool IsEnd(List<State> stack, List<Vector2> input)
         {
-            return stack.Contains(topLeftSlice) && stack.Contains(topRightSlice) && stack.Contains(bottomRightSlice) &&
-                   stack.Contains(bottomLeftSlice);
+            if (!stack.Contains(topLeftSlice) || !stack.Contains(topRightSlice) || !stack.Contains(bottomRightSlice) ||
+                !stack.Contains(bottomLeftSlice)) return false;
+            
+            var endSegmentPoint = input.First();
+            var endSegmentVector = input.Last() - endSegmentPoint;
+            
+            var startSegmentVector = m_StartLine.Item2 - m_StartLine.Item1;
+            var radiusDirection = new Vector2(startSegmentVector.y, -startSegmentVector.x).normalized;
+            
+            //Find the point where the last segment crossed the first point, passed above or below
+            var intersection = FindIntersectionBetweenLines(endSegmentPoint, endSegmentVector.normalized, m_StartLine.Item1, radiusDirection);
+            
+            var distanceFromEndSegmentFirst = Vector2.Dot( endSegmentPoint - intersection, endSegmentVector.normalized);
+            var distanceFromEndSegmentLast = Vector2.Dot(input.Last() - intersection, endSegmentVector.normalized);
+            var distanceFromStart = Vector2.Dot(intersection - m_StartLine.Item1, radiusDirection);
+            
+            // The last segment can pass above, bellow or cross the first point, but its minumum distance from the
+            // point must be less than or equal the tolerance and its last point must have crossed the circle first point
+            var isCloseEnough = distanceFromEndSegmentFirst <= 0 && distanceFromEndSegmentLast >= 0 && distanceFromStart >= 0 && Mathf.Abs(distanceFromStart) <= m_ClosingTolerance;
+            return isCloseEnough;
+        }
+        
+        static Vector2 FindIntersectionBetweenLines(Vector2 l1Point, Vector2 l1Dir, Vector2 l2Point, Vector2 l2Dir)
+        {
+            var l1OrthogonalAxis = new Vector2(l1Dir.y, -l1Dir.x); //Rotate the edge clockwise to obtain the normal
+            var distanceL2ToL1 = l1Point - l2Point;
+            var distanceOrthogonalComponent = Vector2.Dot(distanceL2ToL1, l1OrthogonalAxis);
+            var directionOrthogonalComponent = Vector2.Dot(l2Dir, l1OrthogonalAxis);
+            var dt = distanceOrthogonalComponent /
+                     directionOrthogonalComponent; //Edge necessary dt throught the normal projection (minimum distance direction to cross the face)
+            return l2Point + l2Dir * dt;
         }
 
         //Input must have at least 4 points
@@ -270,13 +325,14 @@ namespace Samples.SimpleDemo.GestureInputCore
         private float m_Epsilon = 0.01f;
         private int m_CancelThreshold = 10;
         private int m_TransitionThreshold = 3;
+        private float m_ClosingTolerance = 50; 
 
         private Action onStarted { get; }
         private Action onFinished { get; }
 
         private Action onCanceled { get; }
         private Action onIdle { get; }
-        
+
         public State start { get; } = new State("Start");
         public State end { get; } = new State("End");
         public State topLeftSlice { get; } = new State("1");
@@ -284,9 +340,9 @@ namespace Samples.SimpleDemo.GestureInputCore
         public State bottomRightSlice { get; } = new State("3");
         public State bottomLeftSlice { get; } = new State("4");
 
-        private List<Vector2> m_Inputs = new List<Vector2>(6);
+        private readonly List<Vector2> m_Inputs = new List<Vector2>(6);
+        private Tuple<Vector2, Vector2> m_StartLine;
         public StateMachine stateMachine { get; }
-
-
+        
     }
 }
