@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections;
 using UnityEngine;
 using UnityEngine.Events;
 
@@ -10,12 +8,14 @@ public class DetectCircleGesture : MonoBehaviour
     public UnityEvent onDetected;
     public UnityEvent onCanceled;
     public UnityEvent onActionFinished;
-    private GestureInputAction m_Controls;
+
+
     // Start is called before the first frame update
     void Awake()
     {
         m_Controls = new GestureInputAction();
         m_Controls.Enable();
+
         m_Controls.Fire.Trigger.performed += ctx =>
         {
             onDetected.Invoke();
@@ -33,10 +33,6 @@ public class DetectCircleGesture : MonoBehaviour
         yield return new WaitForSecondsRealtime(actionDuration);
         onActionFinished.Invoke();
     }
-
-    // Update is called once per frame
-    void Update()
-    {
-        
-    }
+    
+    private GestureInputAction m_Controls;
 }

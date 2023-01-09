@@ -8,6 +8,8 @@ using UnityEngine;
 public class DrawGestureDetection : MonoBehaviour
 {
     public Material material;
+
+    public Camera camera;
     // Start is called before the first frame update
     void Start()
     {
@@ -48,7 +50,10 @@ public class DrawGestureDetection : MonoBehaviour
         {
             transform =
             {
-                position = start
+                parent = this.transform,
+                localScale = new Vector3(0.1f, 0.1f, 0.1f),
+                localPosition = start
+                
             }
         };
 
@@ -59,8 +64,9 @@ public class DrawGestureDetection : MonoBehaviour
         lr.endColor = color;
         lr.startWidth = 10f;
         lr.endWidth = 10f;
-        lr.SetPosition(0, start);
-        lr.SetPosition(1, end);
+        lr.useWorldSpace = true;
+        lr.SetPosition(0, camera.WorldToScreenPoint(start));
+        lr.SetPosition(1, camera.WorldToScreenPoint(end));
     }
 
     private CircleGesture m_Cg;

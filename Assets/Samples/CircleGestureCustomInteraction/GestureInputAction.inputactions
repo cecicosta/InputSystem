@@ -1,0 +1,34 @@
+{
+    "name": "GestureInputAction",
+    "maps": [
+        {
+            "name": "Fire",
+            "id": "936b4ac6-c53e-4138-92a7-1f23cf8bf10a",
+            "actions": [
+                {
+                    "name": "Trigger",
+                    "type": "Value",
+                    "id": "a168c9f9-0845-44f8-b667-05051edf1d7e",
+                    "expectedControlType": "Vector2",
+                    "processors": "",
+                    "interactions": "CircleGesture",
+                    "initialStateCheck": true
+                }
+            ],
+            "bindings": [
+                {
+                    "name": "",
+                    "id": "2e7a30ad-dad8-42db-9e7f-13e6c59b4b5e",
+                    "path": "<Pointer>/position",
+                    "interactions": "CircleGesture",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Trigger",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                }
+            ]
+        }
+    ],
+    "controlSchemes": []
+}

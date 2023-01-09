@@ -10,12 +10,27 @@ namespace Samples.SimpleDemo.GestureInputCore
 {
     public class CircleGesture
     {
-        private Action onStarted { get; }
-        private Action onFinished { get; }
 
-        private Action onCanceled { get; }
-        private Action onIdle { get; }
-
+        public int sampleSize
+        {
+            get => m_SampleSize;
+            set => m_SampleSize = value < 5 ? m_SampleSize : value;
+        }
+        public float epsilon
+        {
+            get => m_Epsilon;
+            set => m_Epsilon = value;
+        }
+        public int cancelThreshold
+        {
+            get => m_CancelThreshold;
+            set => m_CancelThreshold = value;
+        }
+        public int transitionThreshold
+        {
+            get => m_TransitionThreshold;
+            set => m_TransitionThreshold = value;
+        }
         public CircleGesture(Action onStarted, Action onFinished, Action onCanceled, Action onIdle)
         {
             this.onStarted = onStarted;
@@ -23,35 +38,35 @@ namespace Samples.SimpleDemo.GestureInputCore
             this.onCanceled = onCanceled;
             this.onIdle = onIdle;
 
-            start.AddTransition(topLeftSlice, CreateConditionalWithThreshold(IsTopLeftSliceClockwise, 0));
-            start.AddTransition(topRightSlice, CreateConditionalWithThreshold(IsTopRightSliceClockwise, 0));
-            start.AddTransition(bottomRightSlice, CreateConditionalWithThreshold(IsBottomRightSliceClockwise, 0));
-            start.AddTransition(bottomLeftSlice, CreateConditionalWithThreshold(IsBottomLeftSliceClockwise, 0));
+            start.AddTransition(topLeftSlice, CreateConditionalWithThreshold(IsTopLeftSlice, 0));
+            start.AddTransition(topRightSlice, CreateConditionalWithThreshold(IsTopRightSlice, 0));
+            start.AddTransition(bottomRightSlice, CreateConditionalWithThreshold(IsBottomRightSlice, 0));
+            start.AddTransition(bottomLeftSlice, CreateConditionalWithThreshold(IsBottomLeftSlice, 0));
 
             topLeftSlice.AddTransition(end, IsEnd);
-            topLeftSlice.AddTransition(topRightSlice, CreateConditionalWithThreshold(IsTopRightSliceClockwise, 3));
-            topLeftSlice.AddTransition(bottomLeftSlice, CreateConditionalWithThreshold(IsBottomLeftSliceClockwise, 3));
+            topLeftSlice.AddTransition(topRightSlice, CreateConditionalWithThreshold(IsTopRightSlice, transitionThreshold));
+            topLeftSlice.AddTransition(bottomLeftSlice, CreateConditionalWithThreshold(IsBottomLeftSlice, transitionThreshold));
             topLeftSlice.AddTransition(start,
-                CreateConditionalWithThreshold((stack, input) => !IsTopLeftSliceClockwise(stack, input), 5));
+                CreateConditionalWithThreshold((stack, input) => !IsTopLeftSlice(stack, input), cancelThreshold));
 
             topRightSlice.AddTransition(end, IsEnd);
-            topRightSlice.AddTransition(bottomRightSlice, CreateConditionalWithThreshold(IsBottomRightSliceClockwise, 3));
-            topRightSlice.AddTransition(topLeftSlice, CreateConditionalWithThreshold(IsTopLeftSliceClockwise, 3));
+            topRightSlice.AddTransition(bottomRightSlice, CreateConditionalWithThreshold(IsBottomRightSlice, transitionThreshold));
+            topRightSlice.AddTransition(topLeftSlice, CreateConditionalWithThreshold(IsTopLeftSlice, transitionThreshold));
             topRightSlice.AddTransition(start,
-                CreateConditionalWithThreshold((stack, input) => !IsTopRightSliceClockwise(stack, input), 5));
+                CreateConditionalWithThreshold((stack, input) => !IsTopRightSlice(stack, input), cancelThreshold));
 
             bottomRightSlice.AddTransition(end, IsEnd);
-            bottomRightSlice.AddTransition(bottomLeftSlice, CreateConditionalWithThreshold(IsBottomLeftSliceClockwise, 3));
-            bottomRightSlice.AddTransition(topRightSlice, CreateConditionalWithThreshold(IsTopRightSliceClockwise, 3));
+            bottomRightSlice.AddTransition(bottomLeftSlice, CreateConditionalWithThreshold(IsBottomLeftSlice, transitionThreshold));
+            bottomRightSlice.AddTransition(topRightSlice, CreateConditionalWithThreshold(IsTopRightSlice, transitionThreshold));
             bottomRightSlice.AddTransition(start,
                 CreateConditionalWithThreshold(
-                    (stack, input) => !IsBottomRightSliceClockwise(stack, input), 5));
+                    (stack, input) => !IsBottomRightSlice(stack, input), cancelThreshold));
 
             bottomLeftSlice.AddTransition(end, IsEnd);
-            bottomLeftSlice.AddTransition(topLeftSlice, CreateConditionalWithThreshold(IsTopLeftSliceClockwise, 3));
-            bottomLeftSlice.AddTransition(bottomRightSlice, CreateConditionalWithThreshold(IsBottomRightSliceClockwise, 3));
+            bottomLeftSlice.AddTransition(topLeftSlice, CreateConditionalWithThreshold(IsTopLeftSlice, transitionThreshold));
+            bottomLeftSlice.AddTransition(bottomRightSlice, CreateConditionalWithThreshold(IsBottomRightSlice, transitionThreshold));
             bottomLeftSlice.AddTransition(start,
-                CreateConditionalWithThreshold((stack, input) => !IsBottomLeftSliceClockwise(stack, input), 5));
+                CreateConditionalWithThreshold((stack, input) => !IsBottomLeftSlice(stack, input), cancelThreshold));
 
             stateMachine = new StateMachine(start, end, 7);
         }
@@ -100,7 +115,7 @@ namespace Samples.SimpleDemo.GestureInputCore
             {
                 m_Inputs.Add(position);
             }
-            else if (Mathf.Abs(position.x - m_Inputs.Last().x) > Epsilon)
+            else if (Mathf.Abs(position.x - m_Inputs.Last().x) > epsilon)
             {
                 m_Inputs.Add(position);
             }
@@ -151,51 +166,28 @@ namespace Samples.SimpleDemo.GestureInputCore
         /// <param name="input"></param>
         /// List of points read from the input device as Vector2 coordinates.
         /// <returns></returns>
-        private bool IsTopLeftSliceClockwise(List<State> stack, List<Vector2> input)
+        private bool IsTopLeftSlice(List<State> stack, List<Vector2> input)
         {
             return DerivativeAverageIfDefined(input, out var dPiAverage, out var ddPiAverage) && dPiAverage > 0 &&
                    ddPiAverage <= 0;
         }
-        private bool IsTopLeftSliceCounterClockwise(List<State> stack, List<Vector2> input)
-        {
-            return DerivativeAverageIfDefined(input, out var dPiAverage, out var ddPiAverage) && dPiAverage <= 0 &&
-                   ddPiAverage <= 0;
-        }
-        private bool IsTopRightSliceClockwise(List<State> stack, List<Vector2> input)
+        private bool IsTopRightSlice(List<State> stack, List<Vector2> input)
         {
             return DerivativeAverageIfDefined(input, out var dPiAverage, out var ddPiAverage) && dPiAverage <= 0 &&
                    ddPiAverage < 0;
         }
-        
-        private bool IsTopRightSliceCounterClockwise(List<State> stack, List<Vector2> input)
-        {
-            return DerivativeAverageIfDefined(input, out var dPiAverage, out var ddPiAverage) && dPiAverage > 0 &&
-                   ddPiAverage < 0;
-        }
-
-        private bool IsBottomRightSliceClockwise(List<State> stack, List<Vector2> input)
+        private bool IsBottomRightSlice(List<State> stack, List<Vector2> input)
         {
             return DerivativeAverageIfDefined(input, out var dPiAverage, out var ddPiAverage) && dPiAverage < 0 &&
                    ddPiAverage >= 0;
         }
-        private bool IsBottomRightSliceCounterClockwise(List<State> stack, List<Vector2> input)
-        {
-            return DerivativeAverageIfDefined(input, out var dPiAverage, out var ddPiAverage) && dPiAverage >= 0 &&
-                   ddPiAverage >= 0;
-        }
 
-        private bool IsBottomLeftSliceClockwise(List<State> stack, List<Vector2> input)
+        private bool IsBottomLeftSlice(List<State> stack, List<Vector2> input)
         {
             return DerivativeAverageIfDefined(input, out var dPiAverage, out var ddPiAverage) && dPiAverage >= 0 &&
                    ddPiAverage > 0;
         }
         
-        private bool IsBottomLeftSliceCounterClockwise(List<State> stack, List<Vector2> input)
-        {
-            return DerivativeAverageIfDefined(input, out var dPiAverage, out var ddPiAverage) && dPiAverage < 0 &&
-                   ddPiAverage > 0;
-        }
-
         private Func<List<State>, List<Vector2>, bool> CreateConditionalWithThreshold(
             Func<List<State>, List<Vector2>, bool> condition,
             int threshold)
@@ -274,15 +266,17 @@ namespace Samples.SimpleDemo.GestureInputCore
 
         private bool m_IsStarted = false;
 
-        public int sampleSize
-        {
-            get => m_SampleSize;
-            set => m_SampleSize = value < 5 ? m_SampleSize : value;
-        }
-
         private int m_SampleSize = 8;
-        private const float Epsilon = 0.01f;
+        private float m_Epsilon = 0.01f;
+        private int m_CancelThreshold = 10;
+        private int m_TransitionThreshold = 3;
 
+        private Action onStarted { get; }
+        private Action onFinished { get; }
+
+        private Action onCanceled { get; }
+        private Action onIdle { get; }
+        
         public State start { get; } = new State("Start");
         public State end { get; } = new State("End");
         public State topLeftSlice { get; } = new State("1");
@@ -292,5 +286,7 @@ namespace Samples.SimpleDemo.GestureInputCore
 
         private List<Vector2> m_Inputs = new List<Vector2>(6);
         public StateMachine stateMachine { get; }
+
+
     }
 }

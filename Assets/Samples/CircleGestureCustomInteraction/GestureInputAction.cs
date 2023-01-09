@@ -33,7 +33,7 @@ public partial class @GestureInputAction: IInputActionCollection2, IDisposable
                     ""id"": ""a168c9f9-0845-44f8-b667-05051edf1d7e"",
                     ""expectedControlType"": ""Vector2"",
                     ""processors"": """",
-                    ""interactions"": """",
+                    ""interactions"": ""CircleGesture"",
                     ""initialStateCheck"": true
                 }
             ],
